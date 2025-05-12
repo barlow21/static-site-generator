@@ -1,12 +1,12 @@
 import unittest
 
-from splitnode import (
+from inline_markdown import (
     extract_markdown_images,
     split_nodes_delimiter,
     split_nodes_image,
     text_to_textnodes,
 )
-from textnode import TextNode, TextType
+from node import TextNode, TextType
 
 
 class TestSplitNode(unittest.TestCase):

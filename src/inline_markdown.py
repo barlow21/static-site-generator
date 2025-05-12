@@ -1,5 +1,6 @@
 import re
-from textnode import TextNode, TextType
+
+from node import TextNode, TextType
 
 
 class DelimiterException(Exception):
@@ -41,7 +42,7 @@ def should_split(text_type, node):
     return node.text_type == TextType.TEXT and text_type in TYPES_TO_SPLIT
 
 
-def split_nodes_image(old_nodes):
+def split_nodes_regex(old_nodes, extract_matches, regex, text_type):
     new_nodes = []
     for node in old_nodes:
         # no text node
@@ -49,15 +50,15 @@ def split_nodes_image(old_nodes):
             new_nodes.append(node)
             continue
 
-        tuples = extract_markdown_images(node.text)
-        # no images found
+        tuples = extract_matches(node.text)
+        # no matches found
         if len(tuples) == 0:
             new_nodes.append(node)
             continue
 
-        texts = re.split(IMAGE_REGEX, node.text)
+        texts = re.split(regex, node.text)
 
-        # Remove the regex matches
+        # Remove the regex matches (pattern: text, regex, regex, text, regex regex, text ...)
         texts = [text for i, text in enumerate(texts) if i % 3 == 0]
 
         # len(tuples) is always len(texts) - 1
@@ -68,41 +69,21 @@ def split_nodes_image(old_nodes):
 
             if i < len(tuples):
                 alt_text, url = tuples[i]
-                new_nodes.append(TextNode(alt_text, TextType.IMAGE, url))
+                new_nodes.append(TextNode(alt_text, text_type, url))
 
     return new_nodes
+
+
+def split_nodes_image(old_nodes):
+    return split_nodes_regex(
+        old_nodes, extract_markdown_images, IMAGE_REGEX, TextType.IMAGE
+    )
 
 
 def split_nodes_link(old_nodes):
-    new_nodes = []
-    for node in old_nodes:
-        # no text node
-        if node.text_type != TextType.TEXT:
-            new_nodes.append(node)
-            continue
-
-        tuples = extract_markdown_links(node.text)
-        # no images found
-        if len(tuples) == 0:
-            new_nodes.append(node)
-            continue
-
-        texts = re.split(LINK_REGEX, node.text)
-
-        # Remove the regex matches
-        texts = [text for i, text in enumerate(texts) if i % 3 == 0]
-
-        # len(tuples) is always len(texts) - 1
-        for i in range(0, len(texts)):
-            text = texts[i]
-            if text != "":
-                new_nodes.append(TextNode(text, TextType.TEXT))
-
-            if i < len(tuples):
-                link_text, url = tuples[i]
-                new_nodes.append(TextNode(link_text, TextType.LINK, url))
-
-    return new_nodes
+    return split_nodes_regex(
+        old_nodes, extract_markdown_links, LINK_REGEX, TextType.LINK
+    )
 
 
 IMAGE_REGEX = r"!\[([^\[\]]*)\]\(([^\(\)]*)\)"
